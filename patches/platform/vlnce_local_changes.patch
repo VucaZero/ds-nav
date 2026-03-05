@@ -1,0 +1,63 @@
+diff --git a/vlnce_baselines/common/base_il_trainer.py b/vlnce_baselines/common/base_il_trainer.py
+index 7ab4604..07d5102 100644
+--- a/vlnce_baselines/common/base_il_trainer.py
++++ b/vlnce_baselines/common/base_il_trainer.py
+@@ -29,9 +29,13 @@ from vlnce_baselines.common.aux_losses import AuxLosses
+ from vlnce_baselines.common.env_utils import construct_envs_auto_reset_false
+ from vlnce_baselines.common.utils import extract_instruction_tokens
+ 
+-with warnings.catch_warnings():
+-    warnings.filterwarnings("ignore", category=FutureWarning)
+-    import tensorflow as tf  # noqa: F401
++# Optional TensorFlow import (not required for VLN-CE inference)
++try:
++    with warnings.catch_warnings():
++        warnings.filterwarnings("ignore", category=FutureWarning)
++        import tensorflow as tf  # noqa: F401
++except ImportError:
++    tf = None
+ 
+ 
+ class BaseVLNCETrainer(BaseILTrainer):
+diff --git a/vlnce_baselines/dagger_trainer.py b/vlnce_baselines/dagger_trainer.py
+index 0c49ecd..e27a007 100644
+--- a/vlnce_baselines/dagger_trainer.py
++++ b/vlnce_baselines/dagger_trainer.py
+@@ -23,9 +23,13 @@ from vlnce_baselines.common.base_il_trainer import BaseVLNCETrainer
+ from vlnce_baselines.common.env_utils import construct_envs
+ from vlnce_baselines.common.utils import extract_instruction_tokens
+ 
+-with warnings.catch_warnings():
+-    warnings.filterwarnings("ignore", category=FutureWarning)
+-    import tensorflow as tf  # noqa: F401
++# Optional TensorFlow import (not required for VLN-CE inference)
++try:
++    with warnings.catch_warnings():
++        warnings.filterwarnings("ignore", category=FutureWarning)
++        import tensorflow as tf  # noqa: F401
++except ImportError:
++    tf = None
+ 
+ 
+ class ObservationsDict(dict):
+diff --git a/vlnce_baselines/recollect_trainer.py b/vlnce_baselines/recollect_trainer.py
+index a8f6c6b..b51909c 100644
+--- a/vlnce_baselines/recollect_trainer.py
++++ b/vlnce_baselines/recollect_trainer.py
+@@ -20,9 +20,13 @@ from vlnce_baselines.common.recollection_dataset import (
+ )
+ from vlnce_baselines.dagger_trainer import collate_fn
+ 
+-with warnings.catch_warnings():
+-    warnings.filterwarnings("ignore", category=FutureWarning)
+-    import tensorflow as tf  # noqa: F401
++# Optional TensorFlow import (not required for VLN-CE inference)
++try:
++    with warnings.catch_warnings():
++        warnings.filterwarnings("ignore", category=FutureWarning)
++        import tensorflow as tf  # noqa: F401
++except ImportError:
++    tf = None
+ 
+ 
+ @baseline_registry.register_trainer(name="recollect_trainer")

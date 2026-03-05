@@ -1,4 +1,7 @@
+# 默认忽略全部
 *
+
+# 根级文件白名单
 !.gitignore
 !AGENTS.md
 !EXPERIMENT_DESIGN.md
@@ -6,3 +9,27 @@
 !METHOD_STRUCTURE.md
 !PROJECT_STRUCTURE.md
 !README.md
+!dsnav.sh
+
+# 方法与实验代码
+!scripts/
+!scripts/**
+!vln_ce_baseline/
+!vln_ce_baseline/**
+
+# 平台补丁文件（用于记录 programs 中改动）
+!patches/
+!patches/**
+
+# 显式本地保留
+programs/**
+reports/**
+eval_results_official/**
+experiment_workspace/**
+*.pth
+*.zip
+*.ckpt
+
+# 缓存
+**/__pycache__/**
+*.pyc

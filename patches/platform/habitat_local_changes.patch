@@ -1,0 +1,57 @@
+diff --git a/habitat/tasks/vln/vln.py b/habitat/tasks/vln/vln.py
+index eb7b624b1..5d4b36d98 100644
+--- a/habitat/tasks/vln/vln.py
++++ b/habitat/tasks/vln/vln.py
+@@ -57,7 +57,8 @@ class VLNEpisode(NavigationEpisode):
+ class InstructionSensor(Sensor):
+     def __init__(self, **kwargs):
+         self.uuid = "instruction"
+-        self.observation_space = spaces.Discrete(0)
++        # gym 新版本要求 n > 0，旧实现的 Discrete(0) 会触发断言
++        self.observation_space = spaces.Discrete(1)
+ 
+     def _get_uuid(self, *args: Any, **kwargs: Any) -> str:
+         return self.uuid
+diff --git a/habitat_baselines/__init__.py b/habitat_baselines/__init__.py
+index 515710750..8cfb53600 100644
+--- a/habitat_baselines/__init__.py
++++ b/habitat_baselines/__init__.py
+@@ -4,22 +4,16 @@
+ # This source code is licensed under the MIT license found in the
+ # LICENSE file in the root directory of this source tree.
+ 
+-from habitat_baselines.common.base_il_trainer import BaseILTrainer
+ from habitat_baselines.common.base_trainer import BaseRLTrainer, BaseTrainer
+-from habitat_baselines.il.trainers.eqa_cnn_pretrain_trainer import (
+-    EQACNNPretrainTrainer,
+-)
+-from habitat_baselines.il.trainers.pacman_trainer import PACMANTrainer
+-from habitat_baselines.il.trainers.vqa_trainer import VQATrainer
+ from habitat_baselines.rl.ppo.ppo_trainer import PPOTrainer, RolloutStorage
+ 
++# NOTE: Removed habitat_baselines.il.* imports (EQA, PACMAN, VQA) to avoid ABI chains
++# (webdataset, sqlite) not needed for VLN-CE v0.1.7 baseline inference
++# Only exposing BaseTrainer, BaseRLTrainer, PPOTrainer, RolloutStorage
++
+ __all__ = [
+     "BaseTrainer",
+     "BaseRLTrainer",
+-    "BaseILTrainer",
+     "PPOTrainer",
+     "RolloutStorage",
+-    "EQACNNPretrainTrainer",
+-    "PACMANTrainer",
+-    "VQATrainer",
+ ]
+diff --git a/habitat_baselines/rl/requirements.txt b/habitat_baselines/rl/requirements.txt
+index c79d56b5e..310a8bd05 100644
+--- a/habitat_baselines/rl/requirements.txt
++++ b/habitat_baselines/rl/requirements.txt
+@@ -1,5 +1,5 @@
+ moviepy>=1.0.1
+ torch>=1.3.1
+ # full tensorflow required for tensorboard video support
+-tensorflow==1.13.1
+-tb-nightly
++
++
