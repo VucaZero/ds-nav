@@ -116,6 +116,11 @@ def run_official_inference(
     output_dir: str = "./eval_results_official",
     uncertainty_threshold: float = 0.5,
     conflict_threshold: float = 0.3,
+    ten_window: int = 20,
+    theta_hysteresis: float = 0.2,
+    k_hysteresis: float = 0.2,
+    scan_budget: float = 0.45,
+    cooldown_steps: int = 10,
 ) -> Dict[str, Any]:
     device = "cuda" if torch.cuda.is_available() else "cpu"
     logger.info("使用设备: %s", device)
@@ -175,9 +180,12 @@ def run_official_inference(
         hooks = [None for _ in range(envs.num_envs)]
     else:
         logger.info(
-            "门控阈值: uncertainty_threshold=%.3f, conflict_threshold=%.3f",
+            "门控阈值: uncertainty_threshold=%.3f, conflict_threshold=%.3f; TEN: window=%d, scan_budget=%.3f, cooldown=%d",
             uncertainty_threshold,
             conflict_threshold,
+            ten_window,
+            scan_budget,
+            cooldown_steps,
         )
         hooks = [
             InferenceHook(
@@ -185,6 +193,11 @@ def run_official_inference(
                 device=device,
                 uncertainty_threshold=uncertainty_threshold,
                 conflict_threshold=conflict_threshold,
+                ten_window=ten_window,
+                theta_hysteresis=theta_hysteresis,
+                k_hysteresis=k_hysteresis,
+                scan_budget=scan_budget,
+                cooldown_steps=cooldown_steps,
             )
             for _ in range(envs.num_envs)
         ]
@@ -361,6 +374,11 @@ def run_official_inference(
         "num_episodes": completed_episodes,
         "uncertainty_threshold": uncertainty_threshold,
         "conflict_threshold": conflict_threshold,
+        "ten_window": ten_window,
+        "theta_hysteresis": theta_hysteresis,
+        "k_hysteresis": k_hysteresis,
+        "scan_budget": scan_budget,
+        "cooldown_steps": cooldown_steps,
         "predictions_file": str(predictions_file),
         "episode_logs_file": str(episode_logs_file),
         "output_dir": str(output_path),
@@ -370,12 +388,17 @@ def run_official_inference(
 def main():
     parser = argparse.ArgumentParser(description="VLN-CE 官方推理 + DS/CLIP/门控")
     parser.add_argument("--exp-config", type=str, required=True, help="官方 VLN-CE 配置文件路径")
-    parser.add_argument("--method", type=str, default="B0", choices=["B0", "B1", "Ours-R", "Ours-L"], help="推理方法")
+    parser.add_argument("--method", type=str, default="B0", choices=["B0", "B1", "Ours-R", "Ours-L", "TEN-R", "TEN-L"], help="推理方法")
     parser.add_argument("--split", type=str, default="val_unseen", choices=["val_unseen", "val_seen", "test"], help="数据集划分")
     parser.add_argument("--episodes", type=int, default=None, help="最多运行 episodes 数（默认全量）")
     parser.add_argument("--output-dir", type=str, default="./eval_results_official", help="输出目录")
     parser.add_argument("--uncertainty-threshold", type=float, default=0.5, help="不确定性门控阈值")
     parser.add_argument("--conflict-threshold", type=float, default=0.3, help="冲突门控阈值")
+    parser.add_argument("--ten-window", type=int, default=20, help="TEN 滑窗长度")
+    parser.add_argument("--theta-hysteresis", type=float, default=0.2, help="TEN theta 滞回系数")
+    parser.add_argument("--k-hysteresis", type=float, default=0.2, help="TEN conflict 滞回系数")
+    parser.add_argument("--scan-budget", type=float, default=0.45, help="TEN 扫描预算上限")
+    parser.add_argument("--cooldown-steps", type=int, default=10, help="TEN 连续触发冷却步数")
     parser.add_argument("opts", default=None, nargs=argparse.REMAINDER, help="额外配置选项")
 
     args = parser.parse_args()
@@ -389,6 +412,11 @@ def main():
         output_dir=args.output_dir,
         uncertainty_threshold=args.uncertainty_threshold,
         conflict_threshold=args.conflict_threshold,
+        ten_window=args.ten_window,
+        theta_hysteresis=args.theta_hysteresis,
+        k_hysteresis=args.k_hysteresis,
+        scan_budget=args.scan_budget,
+        cooldown_steps=args.cooldown_steps,
     )
 
     logger.info("推理成功: %s", json.dumps(results, indent=2, ensure_ascii=False))

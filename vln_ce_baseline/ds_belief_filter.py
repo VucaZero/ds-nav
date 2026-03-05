@@ -50,25 +50,38 @@ class DSBeliefFilter(nn.Module):
                 - {}: 低可见性的无知表征
         """
         mass_dict = {}
-        
-        # 每个高可见性的地标作为单独的支撑集合
-        threshold = 0.5
-        selected_scores = []
-        for i, score in enumerate(visibility_scores):
-            if score > threshold:
-                # 使用分数本身作为质量
-                val = float(score.item())
-                selected_scores.append((f'landmark_{i}', val))
+        vis = visibility_scores.detach().float().cpu()
+        if vis.numel() == 0:
+            return {"unknown": 1.0}
 
-        # 归一化为合法质量分配（总和 <= 1）
-        total_selected = sum(v for _, v in selected_scores)
-        norm_factor = max(1.0, total_selected)
-        for key, val in selected_scores:
-            mass_dict[key] = val / norm_factor
-        
-        # 剩余质量分配给空集（代表无知）
+        # Top-K 软分配：避免“硬阈值导致全 unknown”，但保留足够 unknown 以防冲突饱和
+        k = min(3, int(vis.numel()))
+        top_vals, top_idx = torch.topk(vis, k=k)
+        support_pairs = []
+        for rank in range(k):
+            score = float(top_vals[rank].item())
+            idx = int(top_idx[rank].item())
+            # 保留弱证据下限，避免大量 step 没有任何结构证据
+            weight = max(0.0, score - 0.35)
+            if weight > 0.0:
+                support_pairs.append((f"landmark_{idx}", weight))
+
+        # 至多给命题分配 55% 质量，剩余留给 unknown（避免时序融合后 conflict 快速饱和）
+        support_cap = 0.55
+        total_raw = sum(v for _, v in support_pairs)
+        if total_raw > 1e-8:
+            scale = min(1.0, support_cap / total_raw)
+            for key, val in support_pairs:
+                mass_dict[key] = val * scale
+        else:
+            # 极弱证据时保留一个最可能命题，避免纯 unknown 退化
+            top_score = float(top_vals[0].item())
+            top_id = int(top_idx[0].item())
+            weak_mass = min(0.15, max(0.02, top_score * 0.1))
+            mass_dict[f"landmark_{top_id}"] = weak_mass
+
         total_assigned = sum(mass_dict.values())
-        mass_dict['unknown'] = max(0.0, 1.0 - total_assigned)
+        mass_dict["unknown"] = max(0.0, 1.0 - total_assigned)
         
         return mass_dict
     

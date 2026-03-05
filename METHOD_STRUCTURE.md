@@ -1,225 +1,100 @@
-# LTE_NAV 不确定性驱动的长程具身导航技术方案（技术报告 v1）
+# ds-nav 方法结构说明（TEN v2 主线）
 
-> 关键词：长程导航、地标先验失配、冲突/无知量化、Dempster–Shafer、宏观行为门控、可解释决策、数据集构建与噪声注入
+最后更新：2026-03-05  
+版本：`v2.0-active`  
+适用范围：`/home/data/czh/ds-nav`
 
----
+## 0. 文档定位
+- 本文件定义 v2 方法结构、模块边界、接口约束。
+- 术语和变量名以 `EXPERIMENT_DESIGN.md` 为唯一命名源。
+- v1 冻结版位置：`docs/archive/2026-03-05_v1/METHOD_STRUCTURE.md`。
 
-## 1. 背景与问题定义
+## 1. v2 目标（由 Round007 问题反推）
+Round007 证据显示：`conflict≈0`、`bt_sum=0`、门控基本退化为单阈值触发。  
+v2 目标：
+1. 让 `conflict_k` 在真实运行中可观测且可触发回退。
+2. 把“单步阈值”升级为“时序趋势 + 预算 + 冷却”的门控。
+3. 保留与 CMA/B1/Ours-R 的对比兼容，不破坏现有入口与报告链路。
 
-### 1.1 长程具身导航的“失效模式”为什么难
-真实/大尺度导航相较仿真 PointNav/VLN 的核心差异在于：**信息累计、先验失配、以及多源感知的语义不稳定**会在长序列中不断放大，导致系统出现非线性失效（例如：早期一步错判 → 后续路径与记忆持续偏移 → 最终不可恢复）。
+## 2. v2 四层闭环
 
-典型失效模式包括：
-- **无知（Ignorance）不可见**：模型不知道自己“不知道”，仍持续推进导致越走越偏。
-- **冲突（Conflict）不可管理**：来自“先验地标序列/语言指令”与“视觉观测证据”的冲突无法显式量化，只能靠隐式特征让策略网络“猜”。
-- **先验失配不可恢复**：先验地标序列含假地标、顺序错误、缺失、替换（常见于真实任务指令或地图陈旧），传统端到端 policy 缺少“纠错层”。
+### L0 Backbone 执行层
+- 输入：instruction、obs、history。
+- 输出：action logits / waypoint。
+- 兼容：CMA（当前主用），后续可接 DUET/HAMT/ETPNav。
 
-### 1.2 我们要解决的核心问题（收敛后的表述）
-**在长程序列导航中，构建一个显式的“证据—信念—行为”闭环**：
-1) 把每一步观测对“当前地标/子目标命题”的支持/反对/无知量化成证据；
-2) 在时间上融合证据，显式计算**无知质量 m(Θ)**、**冲突系数 K**、以及对各子命题的信念；
-3) 用这些量驱动**宏观行为门控**（继续、短探索、回退、重定位、停止），而非直接替代低层控制；
-4) 在先验失配/感知噪声存在时仍能保持鲁棒性与可解释性。
+### L1 结构载体层
+- Topo 载体：node、frontier、visited。
+- History 载体：滑窗缓存（TEN window）。
 
----
+### L2 TEN 证据层（核心）
+- 每个命题维护：`bel_h`、`bel_not_h`、`theta`、`conflict_k`。
+- 时序更新：折扣、衰减、滞回、窗口统计（`theta_slope`、`k_slope`）。
+- 当前实现新增：
+  - `historical_visibility` 滑窗融合（默认窗口 20，融合实际用最近 6 帧）
+  - 冲突校准（避免 DS 合并后 conflict 饱和）
+  - `temporal_uncertainty/temporal_conflict/stagnation_steps` step 级输出
 
-## 2. 创新动机与创新点（面向审稿/专利的表达）
+### L3 门控与纠错层
+- 输入：TEN 特征 + policy 特征 + topo 特征。
+- 输出：`p_scan`、`p_rewind`、`scan_steps`、`backtrack_target_node`。
+- 约束：`scan_budget` + `cooldown_steps`。
+- 当前实现新增：
+  - 时序停滞触发回退（`stagnation_steps` + `theta/conflict` 联合条件）
+  - `bt_budget`（默认 0.08）抑制回退过多
+  - 回退预算超限自动降级为 `LOOK_AROUND/FOLLOW`
 
-### 2.1 动机：把“不确定性”从副产品变成控制变量
-主流端到端（预训练+微调、Transformer policy、VLN 大模型）确实能提升平均性能，但在**长程失败样本**上常表现为：
-- 无法解释“为何错/何时该停/何时回退”；
-- 对先验错误（地标缺失/顺序错/假地标）无显式恢复机制；
-- 对冲突信息（语义冲突/观测矛盾）缺少稳定的风险控制。
+## 3. 工程落点与接口
 
-我们采用 DS 的核心目的不是“替代 policy”，而是把 DS 用作：
-- **不确定性的可计算表征**（无知与冲突分离）；
-- **宏观决策门控信号**（risk-aware action gating）；
-- **先验纠错的结构化入口**（对“错误先验”进行检测与降权/替换）。
+### 3.1 必改插入点（保持三处骨干）
+1. `vln_ce_baseline/vlnce_integration/inference_hook.py`
+- 初始化 TEN 状态。
+- 每步更新 TEN 并写 step 日志。
 
-### 2.2 创新点（可直接作为 contributions）
-1) **时序命题化（Temporal Propositionization）**：将长程导航拆解为“到达 Goal”的总命题，以及若干**地标子命题序列**，并对每个子命题维护时序证据融合状态。
-2) **显式三元证据质量**：对每个地标命题同时维护支持/反对/无知（m(H), m(¬H), m(Θ)），并显式计算冲突 K，避免把“不确定性”混入 logits。
-3) **宏观行为状态机门控**：以 m(Θ) 与 K 为触发器，将策略切换组织为可解释状态机（Normal / Uncertain / Conflict / Re-localize）。
-4) **先验失配可控化**：通过“地标先验噪声注入 + DS门控训练/评估”构建可复现实验闭环，系统性验证鲁棒性提升（数据层—算法层一致）。数据管线见本项目脚本：地标数据集构建与可控噪声注入。 
-5) **与主流 RL/语义地图兼容**：DS 层不强行替代 PPO/语义地图，而是作为**上层风险控制器**与**训练时的可观测信号**，降低“为什么不用端到端”的质疑成本。
+2. `vln_ce_baseline/disambig_controller.py`
+- 在原接口上升级决策：输出 `action_type`、`scan_steps`、`backtrack_target_node`。
 
----
+3. `vln_ce_baseline/vlnce_integration/action_primitives.py`
+- 支持参数化 `LOOK_AROUND(steps)`。
+- 支持参数化 `BACKTRACK(target_node_id)`。
 
-## 3. 总体架构：分层模块与接口
+### 3.2 v2 新模块
+- `vln_ce_baseline/evidence_graph/`：命题状态与证据图。
+- `vln_ce_baseline/temporal_fusion/`：时序融合与冲突累计。
+- `vln_ce_baseline/gating/`：规则门控、可学习门控、预算管理。
+- `vln_ce_baseline/topo/`：topo 构建与回退目标规划。
 
-### 3.1 模块划分（建议论文/专利都能用的层级）
-系统分为 **四层**（从下到上）：
+## 4. 日志字段约束（只增不删）
+必须新增并落盘到 `episode_logs.json.step_log`：
+- TEN 字段：`theta`、`conflict_k`、`bel_h`、`bel_not_h`、`theta_slope`、`k_slope`。
+- 门控字段：`p_scan`、`p_rewind`、`budget_left`、`cooldown_left`。
+- 回退字段：`backtrack_target_node`。
+- 结构字段：`topo_node_id`、`frontier_count`、`visited_count`。
 
-#### L0 低层执行层（Locomotion / Action）
-- 输入：当前观测编码、目标方向/子目标提示、历史隐状态
-- 输出：离散/连续动作（move/turn/stop 等）
-- 可选实现：PPO / DD-PPO / Transformer policy head
-- 备注：该层保持主流实现，降低集成难度。
+## 5. 新版实验与方法设计具体计划（执行顺序）
+1. P1（实现门禁）
+- 完成 TEN-R 最小链路：`theta/conflict_k` 可更新、可记录。
+- 验收：50ep 下 `conflict_k_max > 0`。
 
-#### L1 语义/几何表征层（Memory / Map，可选）
-- 输出给 DS 的信息：可用于证据提取的“候选地标集合”、可见性、实例 ID、置信度等。
-- 可选：semantic map、topo graph、可查询记忆等。
+2. P2（纠错链路）
+- 打通参数化 BACKTRACK。
+- 验收：50ep 下 `bt_sum > 0`。
 
-#### L2 证据融合层（DS Belief Manager，核心创新）
-- 对每个地标命题 i 维护质量函数：
-  - m_i^t(H), m_i^t(¬H), m_i^t(Θ)
-  - 以及跨源融合冲突 K_i^t
-- 支持：多源证据（视觉实例分割/语义、CLIP/检索、里程计一致性等）与时间融合（折扣、窗口、重放）。
+2.1 P2-Calibration（时序校准）
+- 避免“冲突全 0”与“冲突饱和”两端失衡。
+- 关键指标：
+  - `conflict_k_nonzero_count > 0`
+  - `bt_ratio <= 0.08`
+  - `avg_trigger_rate` 不高于 `scan_budget`
 
-#### L3 宏观行为门控层（Behavior Gating Controller，核心创新）
-- 输入：全局信念状态 {m_i^t(·), K_i^t}、任务进度、路径偏移指标
-- 输出：宏观模式 π_mode ∈ {Normal, Uncertain, Conflict, Re-localize}
-- 决定：是否继续推进、是否短探索、是否回退、是否触发重定位/loop closure、是否停止并请求外部帮助。
+3. P3（安全约束）
+- 加入 budget + cooldown。
+- 验收：`max_trigger_rate <= scan_budget`。
 
----
+4. P4（主对比）
+- 在 E3 做 `B0/B1/Ours-R/TEN-R/TEN-L` 对比。
+- 验收：TEN-R 不弱于 B1，且日志可解释性完整。
 
-## 4. 关键模块设计细节
-
-## 4.1 命题空间与任务分解（Proposition Space）
-设总目标命题为 **G**（到达 goal 区域），将任务拆解为有序地标序列：
-- L = [L_1, L_2, …, L_N]
-- 命题 H_i 表示 “已在正确时间窗口/空间邻域观测到并通过 L_i”。
-
-对每个 H_i，我们需要融合来自时序观测的证据：
-- e_i^t = Evidence(Obs_t → H_i)
-- 输出为 DS 质量分配：m_i^t(H), m_i^t(¬H), m_i^t(Θ)
-
-> 直觉：这对应人类导航中对地标与自运动线索的动态不确定性交互；不确定性会随运动与观测变化而演化。 :contentReference[oaicite:1]{index=1}
-
----
-
-## 4.2 证据构造：从观测到质量函数（Mass Construction）
-
-### 4.2.1 证据源定义（可扩展）
-至少包含两类：
-1) **视觉实例证据**：semantic/instance segmentation 命中某地标实例（object_id）；
-2) **几何/可见性证据**：在路径点附近多 yaw 视角下满足最小像素阈值的“可见性证据”。
-
-项目数据集中已实现“实例级可见性验证”的关键逻辑：在路径点附近多 yaw 角度检查语义实例像素数 hits ≥ min_pixels，即认为可见。 :contentReference[oaicite:2]{index=2}
-
-### 4.2.2 质量分配（示例策略）
-对单步观测 t，针对地标 i：
-- 支持质量：m_t(H_i) = σ(conf_i^t) · r_src
-- 反对质量：m_t(¬H_i) = σ(neg_conf_i^t) · r_src
-- 无知质量：m_t(Θ) = 1 − m_t(H_i) − m_t(¬H_i)
-
-其中：
-- conf_i^t 可由（实例像素比例、CLIP 相似度、几何一致性）组合；
-- r_src 为源可靠性折扣（reliability discounting），可随时间/环境自适应。
-
-> 注意：这里的关键不在“用什么网络算 conf”，而是 **把 conf 显式映射到 (H, ¬H, Θ)**，让“我不知道”成为可用的控制信号。
-
----
-
-## 4.3 时序融合：折扣 + 组合 + 冲突量化
-
-### 4.3.1 单地标的时序融合
-对同一命题 H_i 的证据序列 {m_i^t}：
-- 可用 Dempster 组合（或其稳健变体）逐步融合：
-  - m_i^{1:t} = m_i^{1:t−1} ⊕ m_i^t
-- 同时维护冲突系数 K_i^t（作为冲突触发器）。
-
-### 4.3.2 多源融合（传感器/模型多视角）
-将不同来源（语义分割、CLIP、里程计一致性）视为独立证据源，先做可靠性折扣，再融合。
-
-> DS 在语义建图中用于“把语义不确定性直接融入融合规则”，以获得更可靠的不确定性地图，这给我们“DS+不确定性驱动下游决策”的合理性背书。 :contentReference[oaicite:3]{index=3}
-
----
-
-## 4.4 宏观行为门控：状态机与触发条件
-
-### 4.4.1 状态定义
-- **Normal**：低冲突、低无知 → 按计划推进
-- **Uncertain**：无知高但冲突不高 → 触发短探索/扫视以降低 Θ
-- **Conflict**：冲突 K 高 → 停止推进、回退或重新选择子目标
-- **Re-localize**：长期漂移或持续冲突 → 启动重定位/回环/地图纠偏
-
-### 4.4.2 触发信号（建议默认阈值形式）
-- Uncertain 触发：m_i(Θ) > τ_Θ（对当前目标或全局平均）
-- Conflict 触发：K_i > τ_K 或 K_global > τ_Kg
-- Re-localize 触发：Conflict 持续 T 步 或 “先验进度与观测进度”长期背离
-
-### 4.4.3 输出对低层 policy 的作用方式
-- Normal：policy 按目标向量/子目标推进
-- Uncertain：增加主动观测动作（旋转、短步探索），或提升感知频率
-- Conflict：冻结前进，执行回退/绕行；对先验序列进行降权或跳转
-- Re-localize：调用地图/记忆检索模块进行全局纠偏
-
----
-
-## 5. 数据与评估闭环：可控先验噪声验证鲁棒性
-
-### 5.1 数据集构建（Landmark PointNav v1）
-核心思路：在 HM3D/类似场景中采样 start-goal，抽取路径点，筛选可见地标，形成“GT 地标序列”与“先验地标序列”。关键字段包括：
-- episode_id, scene_id, start/goal
-- path_points_xyz（稀疏采样路径点）
-- landmarks_gt（3–7 个按路径顺序筛选的可见地标）
-- landmarks_prior_clean 与 landmarks_prior（可注入噪声）
-详见数据构建脚本。 :contentReference[oaicite:4]{index=4}
-
-### 5.2 先验噪声注入（Noise Profiles）
-通过对 landmarks_prior_clean 做可控噪声：
-- drop：丢失地标
-- insert_fake：插入假地标
-- replace：类别/索引替换（错先验）
-- shuffle：顺序打乱
-并记录 noise_ops 以便可解释分析。 :contentReference[oaicite:5]{index=5}
-
-> 这一步是你方案“最硬”的工程闭环：**没有噪声注入与可复现实验，任何‘鲁棒性/可解释’都会被认为是叙事。**
-
----
-
-## 6. 端到端工作流程（训练与推理）
-
-## 6.1 推理流程（在线决策闭环）
-1) 读取 episode：获得 goal 与 prior 地标序列（可能含噪）
-2) 每步 t：
-   - L0 执行层产生动作候选（或执行上一动作）
-   - L1 产生候选地标检测结果（实例/语义/CLIP）
-   - L2 将检测结果转为 m(H), m(¬H), m(Θ)，并更新融合信念与冲突 K
-   - L3 根据 {m(Θ), K, drift} 选择模式 π_mode
-   - π_mode 调制 L0：推进/探索/回退/重定位/停止
-3) 到达 goal 或触发停止策略（例如持续冲突且无法消解）
-
-## 6.2 训练流程（建议两阶段，降低耦合风险）
-- **阶段 A（基线 policy）**：在 clean prior 或标准 PointNav 任务上训练 PPO/DD-PPO，得到稳定导航能力。
-- **阶段 B（DS 门控与鲁棒性）**：引入 prior 噪声 profile（drop/replace/shuffle），训练：
-  - 门控阈值/小网络（可学习）；
-  - 或在 RL 中把“不确定性降低/冲突消解”作为辅助奖励；
-  - 记录状态切换与失败样本归因。
-
----
-
-## 7. 方案对比与相关支撑（写论文时怎么“站住”）
-
-1) **不确定性在时序导航中的必要性**：人类导航行为与误差可由不确定性的动态交互解释，说明“把不确定性纳入控制回路”是合理且必要的。 :contentReference[oaicite:6]{index=6}  
-2) **DS 融合与不确定性地图可靠性**：在语义建图中，DS/证据理论被用于更可靠的语义不确定性估计与融合，并能指导下游规划/探索。 :contentReference[oaicite:7]{index=7}  
-3) **大模型 landmark discovery 也强调“先验噪声与可纠正机制”**：VLN 领域将 landmark 作为序列发现问题，并强调“纠错/可学习的先验校正”，与我们“先验失配可控化”的观点一致（但我们落在导航证据与行为门控）。 :contentReference[oaicite:8]{index=8}  
-4) **冲突证据的理论合理性**：证据冲突与不同“证据要求”会导致不同信念计算，这与我们“不同风险场景下门控策略不同”的设计一致。 :contentReference[oaicite:9]{index=9}
-
----
-
-## 8. 可交付物与里程碑（建议你项目推进用）
-
-### 8.1 可交付物
-- 数据：hm3d_landmark_pointnav_v1（含 clean + 多 profile 噪声版本） 
-- 算法：DS Belief Manager + Gating Controller（模块化，可插拔）
-- 可解释分析：
-  - 每个 episode 的 {m(Θ), K} 时序曲线
-  - 门控状态切换次数/触发原因统计
-  - failure case 归因：先验错/感知错/漂移
-
-### 8.2 验证指标（至少三类）
-- 任务指标：Success / SPL（基线一致）
-- 鲁棒性指标：在不同噪声强度下的性能退化曲线
-- 可解释指标：冲突触发与失败事件的关联（例如“>80% 的 catastrophic failure 在 K 持续超阈值后发生”）
-
----
-
-## 9. 总结：方案的“定位”
-这套方案的定位不是“DS 替代端到端导航”，而是：
-- 在现有 RL/VLN 框架上增加一个 **可解释、可控、可复现实验验证** 的上层风险控制器；
-- 把“无知/冲突/先验失配”变成显式变量，使系统具备稳定的**停、探、退、重定位**行为策略；
-- 用数据噪声注入闭环把“鲁棒性提升”从叙事变为可检验工程结论。
-
----
+5. P5（鲁棒与消融）
+- 执行 E4-E7 与 E8-E9。
+- 验收：完成退化曲线、消融结论、校准指标。

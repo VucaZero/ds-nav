@@ -10,6 +10,8 @@
 !PROJECT_STRUCTURE.md
 !README.md
 !dsnav.sh
+!docs/
+!docs/**
 
 # 方法与实验代码
 !scripts/
