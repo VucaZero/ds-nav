@@ -1,6 +1,6 @@
 # ds-nav 实验过程记录（第4类文档）
 
-最后更新：2026-03-05  
+最后更新：2026-03-06  
 范围：`/home/data/czh/ds-nav`
 
 ## 1. 文档定位
@@ -99,3 +99,51 @@
 ### 4.7 本轮阶段结论
 - Round008 已完成 Plan A/B E3 矩阵。
 - 当前推荐路线：`TEN-R v6` 进入下一阶段；TEN-L 暂不扩展。
+
+## 5. Round 009 Review（E3 全量对比进行中）
+
+### 5.1 轮次目标
+- 以 Round008 冻结候选 TEN-R v6 为起点，启动 E3 全量（1839ep）对比。
+- 输出可供 B1/Ours-R 对齐比较的全量基线证据。
+
+### 5.2 实验证据路径
+- 设计报告：`reports/round_009/01_design_report.md`
+- 结构报告：`reports/round_009/02_file_structure_report.md`
+- 结果报告：`reports/round_009/03_experiment_result_report.md`
+- 结构化汇总：
+  - `reports/round_009/summary/round_status.json`
+  - `reports/round_009/summary/e3_full_metrics.json`
+  - `reports/round_009/summary/ROUND_009_SUMMARY.md`
+- 已完成 run：
+  - 日志：`reports/round_009/logs/01_e3_full_ten_r_v6_1839.log`
+  - raw：`reports/round_009/raw/e3_full_ten_r_v6_1839/TEN-R/`
+
+### 5.3 结果汇总（当前）
+- `e3_full_ten_r_v6_1839` 已完成（1839ep）：
+  - `avg_trigger_rate=0.0918`
+  - `max_trigger_rate=0.1200`
+  - `la_sum=9165`
+  - `bt_sum=18972`
+  - `bt_ratio=0.0617`
+  - `conflict_k_max=0.2404`
+  - `conflict_k_nonzero_count=306873`
+  - `runtime=08:40:00`
+- 当前门禁检查通过；但 B1/Ours-R 全量尚未完成，轮次仍为 `in_progress`。
+
+### 5.4 Bad Case（阶段性）
+1. 存在极低触发样本（`min_trigger_rate=0.004`），提示仍有时序盲区样本。
+2. 长时运行（8h40m）期间个别 episode 耗时波动较大，需要在对比阶段纳入效率归因。
+
+### 5.5 归因判断（框架 vs 方法）
+- 框架侧：全量 run 顺利完成并产出完整，执行链路稳定。
+- 方法侧：TEN-R 主体稳定，但“低触发尾部样本”仍需针对性诊断。
+
+### 5.6 Potential Optimization
+1. 完成 B1/Ours-R 全量后，增加“低触发尾部样本”专题分析。
+2. 在 E3 全量对比结论中加入运行时成本指标（总时长、动作总量）作为并列判据。
+3. 进入 E4 前固定 TEN-R v6 作为鲁棒性主线，避免参数漂移。
+
+### 5.7 异常与流程改进
+- 本轮出现“run 已完成但报告未回填”的流程缺口。
+- 根因：执行与回填未绑定自动收尾动作，导致 `round_009` 停留在初始化模板。
+- 已修复：本次已补齐 `round_009` 报告与 summary，并同步更新总过程日志。

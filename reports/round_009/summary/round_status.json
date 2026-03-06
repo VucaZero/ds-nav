@@ -1,0 +1,37 @@
+{
+  "round": "009",
+  "updated_at": "2026-03-06T13:26:15+08:00",
+  "plan_version": "v2.0-active",
+  "status": "in_progress",
+  "round_type": "e3_full_comparison",
+  "execution": {
+    "runtime_experiment": "partial_completed",
+    "completed_runs": [
+      "e3_full_ten_r_v6_1839"
+    ],
+    "pending_runs": [
+      "e3_full_b1_1839",
+      "e3_full_ours_r_1839"
+    ]
+  },
+  "current_assessment": {
+    "ten_r_full_completed": true,
+    "ten_r_full_gate_check": {
+      "avg_trigger_rate_in_0p05_0p45": true,
+      "max_trigger_rate_le_scan_budget": true,
+      "bt_ratio_le_0p08": true,
+      "conflict_k_nonzero_count_gt_0": true,
+      "bt_sum_gt_0": true
+    },
+    "note": "TEN-R full-run done; waiting B1/Ours-R full-run for E3 full comparison close"
+  },
+  "evidence": {
+    "design_report": "/home/data/czh/ds-nav/reports/round_009/01_design_report.md",
+    "file_structure_report": "/home/data/czh/ds-nav/reports/round_009/02_file_structure_report.md",
+    "result_report": "/home/data/czh/ds-nav/reports/round_009/03_experiment_result_report.md",
+    "summary_md": "/home/data/czh/ds-nav/reports/round_009/summary/ROUND_009_SUMMARY.md",
+    "metrics_json": "/home/data/czh/ds-nav/reports/round_009/summary/e3_full_metrics.json",
+    "latest_run_log": "/home/data/czh/ds-nav/reports/round_009/logs/01_e3_full_ten_r_v6_1839.log",
+    "latest_run_raw": "/home/data/czh/ds-nav/reports/round_009/raw/e3_full_ten_r_v6_1839/TEN-R"
+  }
+}

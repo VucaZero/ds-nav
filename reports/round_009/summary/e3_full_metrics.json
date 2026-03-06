@@ -1,0 +1,35 @@
+{
+  "plan_version": "v2.0-active",
+  "updated_at": "2026-03-06T13:26:15+08:00",
+  "runs": [
+    {
+      "run": "e3_full_ten_r_v6_1839",
+      "method": "TEN-R",
+      "status": "completed",
+      "episodes": 1839,
+      "la_sum": 9165,
+      "bt_sum": 18972,
+      "disambig_sum": 28137,
+      "action_count_sum": 307681,
+      "avg_trigger_rate": 0.09175381034811,
+      "min_trigger_rate": 0.004,
+      "max_trigger_rate": 0.12,
+      "bt_ratio": 0.061661266051527,
+      "conflict_k_max": 0.24043729159812,
+      "conflict_k_nonzero_count": 306873,
+      "decision_source_breakdown": {
+        "ten_cooldown": 272904,
+        "ten_temporal_backtrack": 37944,
+        "rule": 23408,
+        "ten_bt_budget_to_la": 1562
+      },
+      "runtime_seconds": 31200,
+      "runtime_hms": "08:40:00",
+      "note": "full-run completed; gates pass with stable trigger-control"
+    }
+  ],
+  "current_best_candidate": {
+    "run": "e3_full_ten_r_v6_1839",
+    "reason": "only completed full-run in Round009; meets current TEN-R process gates"
+  }
+}
