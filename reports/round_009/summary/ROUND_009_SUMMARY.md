@@ -1,6 +1,7 @@
 # Round 009 Summary
 
 ## Overview
+- `plan_version`：`v2.0-active`
 - E3 全量对比现已完成：`TEN-R`、`B1`、`Ours-R` 三组全量 raw 全部落盘。
 - 从过程指标和 safety 约束看，`TEN-R v6` 是当前唯一稳定且成本可控的主线方案。
 - `B1` 和 `Ours-R` 都不适合继续作为后续主线方法推进。

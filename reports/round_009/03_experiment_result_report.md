@@ -1,6 +1,7 @@
 # Round 009 实验结果报告（E3 全量对比完成）
 
 ## 1. 执行状态
+- `plan_version`：`v2.0-active`
 - 轮次状态：`completed`
 - 已完成：
   - `e3_full_ten_r_v6_1839`
