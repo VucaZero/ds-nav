@@ -100,11 +100,11 @@
 - Round008 已完成 Plan A/B E3 矩阵。
 - 当前推荐路线：`TEN-R v6` 进入下一阶段；TEN-L 暂不扩展。
 
-## 5. Round 009 Review（E3 全量对比进行中）
+## 5. Round 009 Review（E3 全量对比完成）
 
 ### 5.1 轮次目标
-- 以 Round008 冻结候选 TEN-R v6 为起点，启动 E3 全量（1839ep）对比。
-- 输出可供 B1/Ours-R 对齐比较的全量基线证据。
+- 以 Round008 冻结候选 TEN-R v6 为起点，完成 E3 全量（1839ep）对比。
+- 输出可供后续 E4-E9 使用的全量基线证据。
 
 ### 5.2 实验证据路径
 - 设计报告：`reports/round_009/01_design_report.md`
@@ -114,11 +114,18 @@
   - `reports/round_009/summary/round_status.json`
   - `reports/round_009/summary/e3_full_metrics.json`
   - `reports/round_009/summary/ROUND_009_SUMMARY.md`
-- 已完成 run：
-  - 日志：`reports/round_009/logs/01_e3_full_ten_r_v6_1839.log`
-  - raw：`reports/round_009/raw/e3_full_ten_r_v6_1839/TEN-R/`
+- 完成 run：
+  - `reports/round_009/logs/01_e3_full_ten_r_v6_1839.log`
+  - `reports/round_009/logs/02_e3_full_b1_1839.log`
+  - `reports/round_009/logs/03_e3_full_ours_r_1839.log`
+  - `reports/round_009/raw/e3_full_ten_r_v6_1839/TEN-R/`
+  - `reports/round_009/raw/e3_full_b1_1839/B1/`
+  - `reports/round_009/raw/e3_full_ours_r_1839/Ours-R/`
+- 历史失败/中断留痕：
+  - `reports/round_009/logs/archive/`
+  - `reports/round_009/raw/archive/`
 
-### 5.3 结果汇总（当前）
+### 5.3 结果汇总（最终）
 - `e3_full_ten_r_v6_1839` 已完成（1839ep）：
   - `avg_trigger_rate=0.0918`
   - `max_trigger_rate=0.1200`
@@ -128,22 +135,42 @@
   - `conflict_k_max=0.2404`
   - `conflict_k_nonzero_count=306873`
   - `runtime=08:40:00`
-- 当前门禁检查通过；但 B1/Ours-R 全量尚未完成，轮次仍为 `in_progress`。
+- `e3_full_b1_1839` 已完成（1839ep）：
+  - `avg_trigger_rate=0.1218`
+  - `max_trigger_rate=0.1260`
+  - `la_sum=111959`
+  - `bt_sum=0`
+  - `action_count_sum=918560`
+  - `conflict_k_nonzero_count=0`
+  - `runtime=10:59:33`
+- `e3_full_ours_r_1839` 已完成（1839ep）：
+  - `avg_trigger_rate=0.9631`
+  - `max_trigger_rate=1.0000`
+  - `la_sum=885428`
+  - `bt_sum=0`
+  - `action_count_sum=918164`
+  - `conflict_k_nonzero_count=820047`
+  - `runtime=13:07:46`
 
-### 5.4 Bad Case（阶段性）
-1. 存在极低触发样本（`min_trigger_rate=0.004`），提示仍有时序盲区样本。
-2. 长时运行（8h40m）期间个别 episode 耗时波动较大，需要在对比阶段纳入效率归因。
+### 5.4 Bad Case
+1. `B1`：触发率看似健康，但 `bt_sum=0` 且 `action_count_sum` 相对 TEN-R 膨胀近 3 倍，说明其主要问题是“高成本扫描”而非越界触发。
+2. `Ours-R`：`avg_trigger_rate=0.9631`、`max_trigger_rate=1.0`，几乎每步触发，已经明显违反当前 safety 约束。
+3. `Ours-R`：虽然 `conflict_k_nonzero_count` 很高，但未形成任何 `BACKTRACK`，反而造成了极端扫描成本，说明规则门控在全量场景下发生了失稳。
+4. `TEN-R`：仍存在极低触发尾部样本（`min_trigger_rate=0.004`），后续在 E4/E9 中仍值得继续观察。
 
 ### 5.5 归因判断（框架 vs 方法）
-- 框架侧：全量 run 顺利完成并产出完整，执行链路稳定。
-- 方法侧：TEN-R 主体稳定，但“低触发尾部样本”仍需针对性诊断。
+- 框架侧：三组全量 raw 均已完整落盘，说明执行链路最终可用。
+- 方法侧：
+  - `TEN-R` 保持稳定，是当前唯一可进入下一阶段的主线方法；
+  - `B1` 主要暴露效率问题；
+  - `Ours-R` 主要暴露触发失控问题。
 
 ### 5.6 Potential Optimization
-1. 完成 B1/Ours-R 全量后，增加“低触发尾部样本”专题分析。
-2. 在 E3 全量对比结论中加入运行时成本指标（总时长、动作总量）作为并列判据。
-3. 进入 E4 前固定 TEN-R v6 作为鲁棒性主线，避免参数漂移。
+1. 按阶段计划进入 `E4` 噪声鲁棒性实验，主线固定 `TEN-R v6`。
+2. 在 E4 中保留 `B1` 和 `Ours-R` 作为退化对照，但不再作为主线候选推进。
+3. 若需要补齐任务级 `SR/SPL/NE/TL` 结论，应先补一个统一 evaluator 导出流程。
+4. 在后续轮次中继续把 `action_count_sum` 与 runtime 作为硬门禁，避免“过程触发正常但成本不可接受”的假阳性。
 
-### 5.7 异常与流程改进
-- 本轮出现“run 已完成但报告未回填”的流程缺口。
-- 根因：执行与回填未绑定自动收尾动作，导致 `round_009` 停留在初始化模板。
-- 已修复：本次已补齐 `round_009` 报告与 summary，并同步更新总过程日志。
+### 5.7 本轮阶段结论
+- Round009 已完成 E3 全量对比的三组主实验。
+- 当前推荐路线明确：`TEN-R v6` 进入下一阶段；`B1` 与 `Ours-R` 保留为对照与失败案例。

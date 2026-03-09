@@ -33,6 +33,8 @@
 | `k_hysteresis` | K 滞回系数 | float | `0.20` | TEN-R/TEN-L |
 | `scan_budget` | 单集扫描预算上限 | float | `0.45` | TEN-R/TEN-L |
 | `cooldown_steps` | 连续触发冷却步数 | int | `10` | TEN-R/TEN-L |
+| `num_environments` | 并行环境数（吞吐配置） | int | `1` | 全阶段 |
+| `batch_size` | 批大小（吞吐配置） | int | `5` | 全阶段 |
 | `p_scan` | 扫视强度 | float | `-` | TEN 输出 |
 | `p_rewind` | 回退倾向 | float | `-` | TEN 输出 |
 | `theta_slope` | 不确定性趋势斜率 | float | `0.0` | TEN step 特征 |
@@ -161,6 +163,13 @@ v2 安全约束：
 进入 E4-E9 的主线方法：
 - `TEN-R`（必选，固定采用 v6 配置）
 - `TEN-L`（可选，需先完成时序稀疏化改造后再重启）
+
+### 4.6 Round009 执行补充（吞吐配置）
+- 为缩短全量运行时长，Round009 的 E3 全量对比（TEN-R/B1/Ours-R）统一使用：
+  - `NUM_ENVIRONMENTS=4`
+- 为保持全量对比执行吞吐一致，Round009 的 E3 全量对比统一额外设置：
+  - `IL.batch_size=4`
+- 该配置属于执行吞吐参数，不改变方法口径；三组全量 run 必须保持一致。
 
 ---
 
