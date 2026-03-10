@@ -1,6 +1,6 @@
 {
   "plan_version": "v2.0-active",
-  "updated_at": "2026-03-10T01:10:00+08:00",
+  "updated_at": "2026-03-10T01:45:00+08:00",
   "runs": [
     {
       "run": "e3_full_ten_r_v6_1839",
@@ -17,15 +17,16 @@
       "bt_ratio": 0.061661266051527,
       "conflict_k_max": 0.24043729159812,
       "conflict_k_nonzero_count": 306873,
-      "decision_source_breakdown": {
-        "ten_cooldown": 272904,
-        "ten_temporal_backtrack": 37944,
-        "rule": 23408,
-        "ten_bt_budget_to_la": 1562
-      },
-      "runtime_seconds": 31200,
       "runtime_hms": "08:40:00",
-      "note": "full-run completed; gates pass with stable trigger-control"
+      "task_metrics": {
+        "num_episodes": 1839,
+        "SR": 0.2947253942359978,
+        "SPL": 0.2470384756938064,
+        "NE": 7.151156791945177,
+        "TL": 11.072681924848027,
+        "success_count": 542
+      },
+      "note": "full-run completed; passes process gates and has strongest task metrics"
     },
     {
       "run": "e3_full_b1_1839",
@@ -40,14 +41,18 @@
       "min_trigger_rate": 0.0,
       "max_trigger_rate": 0.126,
       "bt_ratio": 0.0,
-      "triggered_episodes": 1833,
       "conflict_k_max": 0.0,
       "conflict_k_nonzero_count": 0,
-      "decision_source_breakdown": {
-        "entropy_rule": 111959
-      },
       "runtime_hms": "10:59:33",
-      "note": "trigger-rate gates pass, but no backtracking and action cost is nearly 3x TEN-R"
+      "task_metrics": {
+        "num_episodes": 1839,
+        "SR": 0.05872756933115824,
+        "SPL": 0.058545886972381334,
+        "NE": 8.163816917195406,
+        "TL": 1.8389401235334892,
+        "success_count": 108
+      },
+      "note": "task metrics are weak and action cost is nearly 3x TEN-R"
     },
     {
       "run": "e3_full_ours_r_1839",
@@ -62,55 +67,22 @@
       "min_trigger_rate": 0.08695652173913043,
       "max_trigger_rate": 1.0,
       "bt_ratio": 0.0,
-      "triggered_episodes": 1839,
       "conflict_k_max": 0.22994412710216602,
       "conflict_k_nonzero_count": 820047,
-      "decision_source_breakdown": {
-        "rule": 885428
-      },
       "runtime_hms": "13:07:46",
-      "note": "severe trigger explosion: almost every step triggers LOOK_AROUND and no backtracking occurs"
-    }
-  ],
-  "historical_attempts": [
-    {
-      "run": "e3_full_b1_1839_attached_partial",
-      "method": "B1",
-      "status": "interrupted",
-      "episodes": 60,
-      "runtime_hms": "00:15:10"
-    },
-    {
-      "run": "e3_full_b1_1839_detached_restart",
-      "method": "B1",
-      "status": "failed",
-      "episodes": 0,
-      "runtime_hms": "~00:00:06"
-    },
-    {
-      "run": "e3_full_ours_r_1839_detached_restart",
-      "method": "Ours-R",
-      "status": "failed",
-      "episodes": 0,
-      "runtime_hms": "~00:00:06"
-    },
-    {
-      "run": "e3_full_b1_1839_partial_1761ep",
-      "method": "B1",
-      "status": "interrupted",
-      "episodes": 1761,
-      "runtime_hms": "08:42:52"
-    },
-    {
-      "run": "e3_full_ours_r_1839_partial_1442ep",
-      "method": "Ours-R",
-      "status": "interrupted",
-      "episodes": 1442,
-      "runtime_hms": "08:43:11"
+      "task_metrics": {
+        "num_episodes": 1839,
+        "SR": 0.018488308863512777,
+        "SPL": 0.017585480538533142,
+        "NE": 8.73132763029182,
+        "TL": 0.6706851156037458,
+        "success_count": 34
+      },
+      "note": "severe trigger explosion and worst overall task/efficiency behavior"
     }
   ],
   "current_best_candidate": {
     "run": "e3_full_ten_r_v6_1839",
-    "reason": "only TEN-R simultaneously satisfies trigger-control, nonzero backtracking, and acceptable action-cost constraints"
+    "reason": "best joint outcome on SR/SPL/NE/TL, trigger-control, backtracking, and action-cost constraints"
   }
 }

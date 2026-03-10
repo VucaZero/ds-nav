@@ -35,6 +35,9 @@
 | `cooldown_steps` | 连续触发冷却步数 | int | `10` | TEN-R/TEN-L |
 | `num_environments` | 并行环境数（吞吐配置） | int | `1` | 全阶段 |
 | `batch_size` | 批大小（吞吐配置） | int | `5` | 全阶段 |
+| `noise_profile` | E4 噪声 profile | str | `none` | E4 |
+| `noise_intensity` | E4 噪声强度 | float | `0.0` | E4 |
+| `noise_seed` | E4 噪声随机种子 | int | `1234` | E4 |
 | `p_scan` | 扫视强度 | float | `-` | TEN 输出 |
 | `p_rewind` | 回退倾向 | float | `-` | TEN 输出 |
 | `theta_slope` | 不确定性趋势斜率 | float | `0.0` | TEN step 特征 |
@@ -171,11 +174,28 @@ v2 安全约束：
   - `IL.batch_size=4`
 - 该配置属于执行吞吐参数，不改变方法口径；三组全量 run 必须保持一致。
 
+### 4.7 Round010 执行计划（E4 首轮）
+- 目标：先建立 E4 的统一噪声链路与任务级 evaluator 闭环，再扩展完整噪声矩阵。
+- 首轮主线仅启动 `TEN-R v6`，采用视觉高斯噪声探针：
+  - `run_id=e4_noise_visual_gaussian_p010_ten_r_v6_probe50`
+  - `method=TEN-R`
+  - `noise_profile=visual_gaussian`
+  - `noise_intensity=0.10`
+  - `noise_seed=20260310`
+  - `max_episodes=50`
+  - `NUM_ENVIRONMENTS=4`
+  - `IL.batch_size=4`
+- 首轮判定：
+  - 成功产出 `predictions.json`、`episode_logs.json`、`task_metrics.json`
+  - `summary/` 中补齐 json + md
+  - 对比 Round009 的 `TEN-R` 基线，确认 `SR/SPL/NE/TL` 与 `trigger_rate` 已出现可解释退化
+
 ---
 
 ## 5. 统一入口与命令模板
 
 统一入口：`scripts/run_official_vlnce_inference.py`
+统一任务级 evaluator：`scripts/evaluate_predictions_offline.py`
 
 TEN-R 模板：
 ```bash
@@ -194,6 +214,23 @@ TEN-R 模板：
 无头模式：
 ```bash
 xvfb-run -a -s "-screen 0 1280x1024x24" <上面命令>
+```
+
+TEN-R E4 模板：
+```bash
+/home/data/anaconda3/envs/vlnce38/bin/python \
+  /home/data/czh/ds-nav/scripts/run_official_vlnce_inference.py \
+  --exp-config vlnce_baselines/config/r2r_baselines/test_set_inference.yaml \
+  --method TEN-R \
+  --split val_unseen \
+  --max-episodes 50 \
+  --ten-window 20 \
+  --scan-budget 0.45 \
+  --cooldown-steps 10 \
+  --noise-profile visual_gaussian \
+  --noise-intensity 0.10 \
+  --noise-seed 20260310 \
+  --output-dir /home/data/czh/ds-nav/reports/round_010/raw/e4_noise_visual_gaussian_p010_ten_r_v6_probe50
 ```
 
 ---

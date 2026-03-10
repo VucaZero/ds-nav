@@ -174,3 +174,58 @@
 ### 5.7 本轮阶段结论
 - Round009 已完成 E3 全量对比的三组主实验。
 - 当前推荐路线明确：`TEN-R v6` 进入下一阶段；`B1` 与 `Ours-R` 保留为对照与失败案例。
+
+
+## 6. Round 010 Review（E4 第一轮矩阵完成）
+
+### 6.1 轮次目标
+- 建立 E4 噪声鲁棒性主线探针链路。
+- 以 `TEN-R v6` 在 `visual_gaussian p010/p020/p030` 下验证统一 task evaluator 与退化趋势。
+- 补 `B1 p010` 与 `Ours-R p010` 对照，完成第一轮矩阵。
+
+### 6.2 实验证据路径
+- 设计报告：`reports/round_010/01_design_report.md`
+- 结构报告：`reports/round_010/02_file_structure_report.md`
+- 结果报告：`reports/round_010/03_experiment_result_report.md`
+- 结构化汇总：
+  - `reports/round_010/summary/round_status.json`
+  - `reports/round_010/summary/ROUND_010_SUMMARY.md`
+  - `reports/round_010/summary/task_metrics_round010.json`
+- 关键运行证据：
+  - `reports/round_010/logs/01_e4_noise_visual_gaussian_p010_ten_r_v6_probe50.log`
+  - `reports/round_010/logs/02_e4_noise_visual_gaussian_p020_ten_r_v6_probe50.log`
+  - `reports/round_010/logs/03_e4_noise_visual_gaussian_p030_ten_r_v6_probe50.log`
+  - `reports/round_010/logs/04_e4_noise_visual_gaussian_p010_b1_probe50.log`
+  - `reports/round_010/logs/05_e4_noise_visual_gaussian_p010_ours_r_probe50.log`
+
+### 6.3 结果汇总
+- `TEN-R`：
+  - `p010` 未见明显退化；
+  - `p020` 开始出现轻度退化；
+  - `p030` 退化进一步加深，`delta_SR=-0.1887`、`delta_SPL=-0.1669`。
+- `B1 p010`：
+  - `SR=0.0192`
+  - `SPL=0.0192`
+  - 在 noise 与 clean subset 下几乎无差异，说明其本身已接近失效基线。
+- `Ours-R p010`：
+  - `SR=0.0577`
+  - `SPL=0.0536`
+  - `avg_trigger_rate=0.9647`
+  - 在轻度噪声下依旧维持高触发、低任务性能状态。
+
+### 6.4 Bad Case
+1. `TEN-R` 的任务级性能随噪声强度提升而持续下降，说明视觉高斯噪声确实会逐步侵蚀导航质量。
+2. `B1` 在 `p010` 下就已处于极低任务性能区间，缺乏作为有效鲁棒性竞争基线的价值。
+3. `Ours-R` 在 `p010` 下依旧触发失控（`avg_trigger_rate` 约 `0.965`），说明它在噪声 setting 下也没有竞争力。
+
+### 6.5 归因判断（框架 vs 方法）
+- 框架侧：`TEN-R/B1/Ours-R` 的噪声实验、离线评估、文档回填链路均已稳定打通。
+- 方法侧：
+  - `TEN-R` 是“可用主线 + 渐进退化”；
+  - `B1` 是“基础方法已弱”；
+  - `Ours-R` 是“触发失控且任务性能弱”。
+
+### 6.6 Potential Optimization
+1. 当前可以冻结 E4 第一轮结论：`TEN-R` 的退化斜率明显优于 `B1/Ours-R`。
+2. 若需更稳的结论，可扩大 `TEN-R` 样本量或继续增加其他噪声 profile。
+3. 后续更有价值的方向是进入下一阶段，而不是继续在弱基线上消耗计算。

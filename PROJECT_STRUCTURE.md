@@ -34,6 +34,7 @@
 ### 4.1 入口与主循环
 - `scripts/run_official_vlnce_inference.py`：统一 CLI 入口。
 - `scripts/run_official_vlnce.py`：官方推理循环。
+- `scripts/evaluate_predictions_offline.py`：离线任务级 evaluator（`SR/SPL/NE/TL`）。
 
 ### 4.2 v1/v2 共享插入点（必须保持）
 - `vln_ce_baseline/vlnce_integration/inference_hook.py`
@@ -63,6 +64,7 @@
 - `e3_ten_r_w20_budget045_cd10`
 - `e3_ten_l_head_w20_budget045_cd10`
 - `e4_noise_shuffle_p30_ten_r_rules`
+- `e4_noise_visual_gaussian_p010_ten_r_v6_probe50`
 
 ### 6.2 日志命名
 规则：`<序号>_<实验名>.log`  

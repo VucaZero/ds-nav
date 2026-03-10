@@ -39,6 +39,9 @@ def main() -> int:
     parser.add_argument("--k-hysteresis", type=float, default=0.2, help="TEN conflict 滞回系数")
     parser.add_argument("--scan-budget", type=float, default=0.45, help="TEN 扫描预算上限")
     parser.add_argument("--cooldown-steps", type=int, default=10, help="TEN 连续触发冷却步数")
+    parser.add_argument("--noise-profile", type=str, default="none", choices=["none", "visual_gaussian"], help="E4 噪声 profile")
+    parser.add_argument("--noise-intensity", type=float, default=0.0, help="E4 噪声强度")
+    parser.add_argument("--noise-seed", type=int, default=1234, help="E4 噪声随机种子")
     parser.add_argument("opts", default=None, nargs=argparse.REMAINDER, help="额外配置选项")
 
     args = parser.parse_args()
@@ -57,6 +60,9 @@ def main() -> int:
         k_hysteresis=args.k_hysteresis,
         scan_budget=args.scan_budget,
         cooldown_steps=args.cooldown_steps,
+        noise_profile=args.noise_profile,
+        noise_intensity=args.noise_intensity,
+        noise_seed=args.noise_seed,
     )
 
     logger.info("完成: %s", json.dumps(result, indent=2, ensure_ascii=False))

@@ -1,6 +1,6 @@
 {
   "round": "009",
-  "updated_at": "2026-03-10T01:10:00+08:00",
+  "updated_at": "2026-03-10T01:45:00+08:00",
   "plan_version": "v2.0-active",
   "status": "completed",
   "round_type": "e3_full_comparison",
@@ -22,10 +22,9 @@
     "pending_runs": []
   },
   "current_assessment": {
-    "ten_r_full_completed": true,
     "round009_closed": true,
     "mainline_candidate": "e3_full_ten_r_v6_1839",
-    "note": "Round009 is now complete. TEN-R remains the only method satisfying trigger-control, effective backtracking, and acceptable action-cost constraints. B1 and Ours-R completed but are not suitable as mainline candidates."
+    "note": "Round009 is complete. Task metrics and process metrics both support TEN-R v6 as the only viable mainline candidate for subsequent stages."
   },
   "evidence": {
     "design_report": "/home/data/czh/ds-nav/reports/round_009/01_design_report.md",
@@ -33,13 +32,9 @@
     "result_report": "/home/data/czh/ds-nav/reports/round_009/03_experiment_result_report.md",
     "summary_md": "/home/data/czh/ds-nav/reports/round_009/summary/ROUND_009_SUMMARY.md",
     "metrics_json": "/home/data/czh/ds-nav/reports/round_009/summary/e3_full_metrics.json",
+    "task_metrics_json": "/home/data/czh/ds-nav/reports/round_009/summary/task_metrics_round009.json",
     "ten_r_log": "/home/data/czh/ds-nav/reports/round_009/logs/01_e3_full_ten_r_v6_1839.log",
     "b1_log": "/home/data/czh/ds-nav/reports/round_009/logs/02_e3_full_b1_1839.log",
-    "ours_r_log": "/home/data/czh/ds-nav/reports/round_009/logs/03_e3_full_ours_r_1839.log",
-    "ten_r_raw": "/home/data/czh/ds-nav/reports/round_009/raw/e3_full_ten_r_v6_1839/TEN-R",
-    "b1_raw": "/home/data/czh/ds-nav/reports/round_009/raw/e3_full_b1_1839/B1",
-    "ours_r_raw": "/home/data/czh/ds-nav/reports/round_009/raw/e3_full_ours_r_1839/Ours-R",
-    "archive_logs": "/home/data/czh/ds-nav/reports/round_009/logs/archive",
-    "archive_raw": "/home/data/czh/ds-nav/reports/round_009/raw/archive"
+    "ours_r_log": "/home/data/czh/ds-nav/reports/round_009/logs/03_e3_full_ours_r_1839.log"
   }
 }

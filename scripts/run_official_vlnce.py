@@ -80,6 +80,27 @@ def _apply_pause_list(items: List[Any], indices_to_pause: List[int]) -> List[Any
     return [x for i, x in enumerate(items) if i not in paused]
 
 
+
+
+def _apply_rgb_noise(observations: List[Dict[str, Any]], noise_profile: str, noise_intensity: float, noise_seed: int, step_idx: int) -> List[Dict[str, Any]]:
+    if noise_profile == "none" or noise_intensity <= 0:
+        return observations
+
+    rng = np.random.default_rng(noise_seed + step_idx)
+    for obs in observations:
+        if not isinstance(obs, dict) or "rgb" not in obs:
+            continue
+        rgb = obs["rgb"]
+        if rgb is None:
+            continue
+        rgb_array = np.asarray(rgb)
+        if noise_profile == "visual_gaussian":
+            noisy = rgb_array.astype(np.float32) + rng.normal(0.0, noise_intensity * 255.0, rgb_array.shape)
+            obs["rgb"] = np.clip(noisy, 0, 255).astype(rgb_array.dtype)
+        else:
+            raise ValueError(f"Unsupported noise_profile: {noise_profile}")
+    return observations
+
 def load_official_config(config_path: str, opts: Optional[List[str]] = None):
     config = get_config(config_path, opts)
     logger.info("配置加载成功: %s", config_path)
@@ -121,6 +142,9 @@ def run_official_inference(
     k_hysteresis: float = 0.2,
     scan_budget: float = 0.45,
     cooldown_steps: int = 10,
+    noise_profile: str = "none",
+    noise_intensity: float = 0.0,
+    noise_seed: int = 1234,
 ) -> Dict[str, Any]:
     device = "cuda" if torch.cuda.is_available() else "cpu"
     logger.info("使用设备: %s", device)
@@ -159,6 +183,7 @@ def run_official_inference(
     trainer.policy.eval()
 
     observations = envs.reset()
+    observations = _apply_rgb_noise(observations, noise_profile, noise_intensity, noise_seed, step_idx=0)
     observations = extract_instruction_tokens(
         observations,
         trainer.config.TASK_CONFIG.TASK.INSTRUCTION_SENSOR_UUID,
@@ -180,12 +205,14 @@ def run_official_inference(
         hooks = [None for _ in range(envs.num_envs)]
     else:
         logger.info(
-            "门控阈值: uncertainty_threshold=%.3f, conflict_threshold=%.3f; TEN: window=%d, scan_budget=%.3f, cooldown=%d",
+            "门控阈值: uncertainty_threshold=%.3f, conflict_threshold=%.3f; TEN: window=%d, scan_budget=%.3f, cooldown=%d; noise_profile=%s, noise_intensity=%.3f",
             uncertainty_threshold,
             conflict_threshold,
             ten_window,
             scan_budget,
             cooldown_steps,
+            noise_profile,
+            noise_intensity,
         )
         hooks = [
             InferenceHook(
@@ -261,6 +288,7 @@ def run_official_inference(
             outputs = envs.step([a[0].item() for a in final_actions])
             observations, _, dones, infos = [list(x) for x in zip(*outputs)]
             step_idx += 1
+            observations = _apply_rgb_noise(observations, noise_profile, noise_intensity, noise_seed, step_idx=step_idx)
 
             not_done_masks = torch.tensor(
                 [[0] if done else [1] for done in dones],
@@ -379,6 +407,9 @@ def run_official_inference(
         "k_hysteresis": k_hysteresis,
         "scan_budget": scan_budget,
         "cooldown_steps": cooldown_steps,
+        "noise_profile": noise_profile,
+        "noise_intensity": noise_intensity,
+        "noise_seed": noise_seed,
         "predictions_file": str(predictions_file),
         "episode_logs_file": str(episode_logs_file),
         "output_dir": str(output_path),
