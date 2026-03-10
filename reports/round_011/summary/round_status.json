@@ -1,0 +1,27 @@
+{
+  "round": "011",
+  "updated_at": "2026-03-10T13:10:00+08:00",
+  "plan_version": "v2.0-active",
+  "status": "planned",
+  "round_type": "method_optimization",
+  "execution": {
+    "runtime_experiment": "idle",
+    "completed_runs": [],
+    "running_runs": [],
+    "pending_runs": [
+      "r11_selector_v1_demo",
+      "r11_selector_v1_clean_probe10",
+      "r11_selector_v1_clean_probe50",
+      "r11_selector_v1_clean_full1839"
+    ]
+  },
+  "current_assessment": {
+    "note": "Round011 is planned as the selector-v1 optimization round following the frozen E4 first-phase conclusion."
+  },
+  "evidence": {
+    "design_report": "/home/data/czh/ds-nav/reports/round_011/01_design_report.md",
+    "file_structure_report": "/home/data/czh/ds-nav/reports/round_011/02_file_structure_report.md",
+    "result_report": "/home/data/czh/ds-nav/reports/round_011/03_experiment_result_report.md",
+    "summary_md": "/home/data/czh/ds-nav/reports/round_011/summary/ROUND_011_SUMMARY.md"
+  }
+}

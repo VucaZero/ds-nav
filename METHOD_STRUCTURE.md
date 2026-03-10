@@ -98,3 +98,28 @@ v2 目标：
 5. P5（鲁棒与消融）
 - 执行 E4-E7 与 E8-E9。
 - 验收：完成退化曲线、消融结论、校准指标。
+
+
+## 6. Round011 方法优化重点（selector v1）
+1. 当前主线问题
+- `BACKTRACK` 已触发，但 `backtrack_target_node` 仍缺少真实目标选择逻辑。
+- 这限制了 `TEN-R` 从“会回退”升级到“会回到更有价值的位置”。
+
+2. 本轮最小改造目标
+- 引入 `backtrack_target_selector v1`。
+- 输出：`selected_node_id`、`selected_score`、`reason`、`ranked_candidates`。
+- 日志新增：
+  - `backtrack_target_score`
+  - `backtrack_target_reason`
+  - `backtrack_ranked_candidates`
+  - `backtrack_expected_info_gain`
+
+3. 接线边界
+- `inference_hook.py`：构造 context/candidates 并调用 selector。
+- `action_primitives.py`：补 selector 结果日志字段。
+- `disambig_controller.py`：仅负责是否触发，不负责选哪个 target。
+
+4. 验收目标
+- `backtrack_target_node` 不再是常量；
+- 候选排序稳定且可解释；
+- clean `10ep/50ep` 上可观察到真实 selector 输出。

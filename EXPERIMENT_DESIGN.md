@@ -192,6 +192,31 @@ v2 安全约束：
 
 ---
 
+### 4.8 Round011 执行计划（方法优化：backtrack_target_selector v1）
+- 决策依据：
+  - `Round009` 已证明 `TEN-R v6` 是唯一 clean setting 下可用主线；
+  - `Round010` 已证明在视觉高斯噪声下，`TEN-R` 呈现“渐进退化但门控稳定”，而 `B1/Ours-R` 都不是有效主线竞争者；
+  - 因此后续重点不再是继续扩弱基线矩阵，而是增强 `TEN-R` 的核心纠错能力。
+- 分支研究重点来源：
+  - `docs/branch/v2.1/01_method_diagnosis_and_optimization_report.md`
+  - `docs/branch/v2.1/02_ten_v2.1_paper_blueprint.md`
+  - `docs/branch/v2.2/04_backtrack_target_selector_design.md`
+  - `docs/branch/v2.2/05_backtrack_selector_code_integration_map.md`
+- 本轮目标：
+  - 让 `backtrack_target_node` 不再是常量；
+  - 让 `BACKTRACK(target_node)` 成为可解释、可排序、可分析的目标选择过程；
+  - 用最小 patch 验证 selector 接入后 `bt_sum > 0` 且日志字段完整。
+- 计划矩阵：
+  - `r11_selector_v1_demo`
+  - `r11_selector_v1_clean_probe10`
+  - `r11_selector_v1_clean_probe50`
+  - `r11_selector_v1_clean_full1839`
+- 首轮通过标准：
+  - `backtrack_target_node` 非常量
+  - `backtrack_ranked_candidates` 成功落盘
+  - `bt_sum > 0`
+  - `summary/` 中补齐 json + md
+
 ## 5. 统一入口与命令模板
 
 统一入口：`scripts/run_official_vlnce_inference.py`

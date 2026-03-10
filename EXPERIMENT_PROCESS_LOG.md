@@ -229,3 +229,45 @@
 1. 当前可以冻结 E4 第一轮结论：`TEN-R` 的退化斜率明显优于 `B1/Ours-R`。
 2. 若需更稳的结论，可扩大 `TEN-R` 样本量或继续增加其他噪声 profile。
 3. 后续更有价值的方向是进入下一阶段，而不是继续在弱基线上消耗计算。
+
+
+## 7. Round 011 Planning（selector v1 方法优化）
+
+### 7.1 决策背景
+- `Round009` 证据表明：`TEN-R v6` 是当前唯一同时满足任务性能、过程门禁与成本约束的 clean 主线方法。
+- `Round010` 第一轮矩阵表明：
+  - `TEN-R` 在噪声下表现为“渐进退化但门控稳定”；
+  - `B1` 与 `Ours-R` 都不是可用的鲁棒性主线对照。
+- 因此，当前最优策略不再是继续扩弱基线矩阵，而是增强 `TEN-R` 的核心纠错能力。
+
+### 7.2 做出该决定的实验证据
+- `reports/round_009/03_experiment_result_report.md`
+- `reports/round_010/03_experiment_result_report.md`
+- `reports/round_009/summary/task_metrics_round009.json`
+- `reports/round_010/summary/task_metrics_round010.json`
+
+### 7.3 前期分支讨论的重点
+- `v2.1` 重点：
+  - 解耦不确定性（`U_epi/U_con/U_pol`）
+  - 节点级证据状态
+  - 约束决策而非简单阈值串联
+- `v2.2` 重点：
+  - `backtrack_target_node` 不能再是常量
+  - 先做规则 selector v1，再升级到节点级证据 selector，再考虑 learned selector
+  - 正式接线优先放在 `inference_hook.py + topo/backtrack_target_selector.py + action_primitives.py`
+
+### 7.4 新的实验计划
+- `Round011` 先做 selector v1 的最小可验证接线：
+  - `r11_selector_v1_demo`
+  - `r11_selector_v1_clean_probe10`
+  - `r11_selector_v1_clean_probe50`
+  - `r11_selector_v1_clean_full1839`
+- 通过标准：
+  - `backtrack_target_node` 非常量
+  - `bt_sum > 0`
+  - `backtrack_ranked_candidates` 落盘
+  - clean 回归不出现明显任务级回退
+
+### 7.5 当前结论
+- 冻结 `E4` 第一轮结论：`TEN-R` 的退化斜率优于 `B1/Ours-R`。
+- 方法开发主线切换到 `backtrack_target_selector v1`。

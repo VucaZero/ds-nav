@@ -65,6 +65,7 @@
 - `e3_ten_l_head_w20_budget045_cd10`
 - `e4_noise_shuffle_p30_ten_r_rules`
 - `e4_noise_visual_gaussian_p010_ten_r_v6_probe50`
+- `r11_selector_v1_clean_probe50`
 
 ### 6.2 日志命名
 规则：`<序号>_<实验名>.log`  
